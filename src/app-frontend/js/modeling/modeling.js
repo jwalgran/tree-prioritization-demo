@@ -2,13 +2,22 @@
 
 var $ = require('jquery'),
     L = require('leaflet'),
+    BU = require('./baconUtils.js'),
     prioritization = require('./prioritization.js'),
-    template = require('./template.js');
+    template = require('./template.js'),
+    geocoder = require('./geocoder.js');
 
 require("../../assets/css/sass/main.scss");
 
 require('es6-promise').polyfill(); // https://gitlab.com/IvanSanchez/Leaflet.GridLayer.GoogleMutant
 require('leaflet.gridlayer.googlemutant');
+
+function searchBoxStream(inputSelector, buttonSelector) {
+    return  $(inputSelector)
+        .asEventStream('keyup')
+        .map(function () { return $(inputSelector).val();})
+        .sampledBy(BU.enterOrClickEventStream({inputs: inputSelector}));
+}
 
 function init() {
     if (window.location.hostname == "localhost"){
@@ -18,7 +27,12 @@ function init() {
     }
     // Minneapolis / St Paul
     var bounds = L.latLngBounds([44.63635, -93.62626], [45.27205, -92.72795]);
+    window.geocoder = geocoder;
 
+    var addressStream = searchBoxStream('#geocode');
+    var geocodeStream = geocoder.createGeocodeStream(addressStream);
+    geocodeStream.log();
+    
     expandTemplates();
     prioritization.init({
         map: createMap(bounds),
