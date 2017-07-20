@@ -19,6 +19,11 @@ function searchBoxStream(inputSelector, buttonSelector) {
         .sampledBy(BU.enterOrClickEventStream({inputs: inputSelector}));
 }
 
+function centerToBounds(center) {
+    // 10,000 meters is a roughly city size boundary
+    return L.latLng(center).toBounds(5000);
+}
+
 function init() {
     if (window.location.hostname == "localhost"){
         var urlPrefix = 'http://' + window.location.hostname + ':8080/tile/gt/';
@@ -30,12 +35,11 @@ function init() {
     window.geocoder = geocoder;
 
     var addressStream = searchBoxStream('#geocode');
-    var geocodeStream = geocoder.createGeocodeStream(addressStream);
-    geocodeStream.log();
-    
+    var boundsStream = geocoder.createGeocodeStream(addressStream).map(centerToBounds);
+
     expandTemplates();
     prioritization.init({
-        map: createMap(bounds),
+        map: createMap(bounds, boundsStream),
         instanceBounds: bounds,
         urls: {
             breaksUrl: urlPrefix + 'breaks',
@@ -54,11 +58,13 @@ function expandTemplates() {
     }));
 }
 
-function createMap(bounds) {
+function createMap(bounds, boundsStream) {
     var map = L.map('map'),
         baseMapPaneName = 'base-map';
     map.createPane(baseMapPaneName);  // CSS class 'leaflet-base-map-pane'
     map.fitBounds(bounds);
+ 
+    boundsStream.onValue(map.fitBounds.bind(map));
 
     var basemapMapping = {
             'Streets':   makeBaseLayer('roadmap'),
