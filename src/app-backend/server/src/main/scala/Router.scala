@@ -53,8 +53,7 @@ trait Router extends Directives
     with TileGetter
     with VectorHandling
     with LayerMasking
-    with TileLayerMasking
-    with Masks { self: ReaderSet =>
+    with TileLayerMasking { self: ReaderSet =>
 
   import AkkaSystem.materializer
 
@@ -86,7 +85,7 @@ trait Router extends Directives
   }
 
   def computeBreaks(bbox: String, layersParam: String, weightsParam: String, numBreaks: Int,
-                    polyMaskParam: String, layerMaskParam: String): String = {
+                    zipCodesParam: String, layerMaskParam: String): String = {
     val extent = ProjectedExtent(Extent.fromString(bbox), LatLng).reproject(WebMercator)
     // TODO: Dynamic breaks based on configurable breaks resolution.
 
@@ -104,7 +103,7 @@ trait Router extends Directives
     }
 
     val polys = reprojectPolygons(
-      parsePolyMaskParam(polyMaskParam),
+      parseZipCodesParam(zipCodesParam),
       4326
     )
 
@@ -173,15 +172,15 @@ trait Router extends Directives
                    'weights,
                    'numBreaks.as[Int],
                    'threshold.as[Int] ? NODATA,
-                   'polyMask ? "",
+                   'zipCodes ? "",
                    'layerMask ? "") {
           (bbox, layersParam, weightsParam, numBreaks, threshold,
-              polyMaskParam, layerMaskParam) => {
+              zipCodesParam, layerMaskParam) => {
             cors() {
                 complete {
                   Future {
                     respondWithJson {
-                      computeBreaks(bbox, layersParam, weightsParam, numBreaks, polyMaskParam, layerMaskParam)
+                      computeBreaks(bbox, layersParam, weightsParam, numBreaks, zipCodesParam, layerMaskParam)
                     }
                   }
                 }
@@ -204,11 +203,11 @@ trait Router extends Directives
                    'breaks,
                    'colorRamp ? "blue-to-red",
                    'threshold.as[Int] ? NODATA,
-                   'polyMask ? "",
+                   'zipCodes ? "",
                    'layerMask ? "") {
           (bbox, layersString, weightsString,
            palette, breaksString, colorRamp, threshold,
-           polyMaskParam, layerMaskParam) => {
+           zipCodesParam, layerMaskParam) => {
                 complete {
                   Future {
                     val extent = ProjectedExtent(Extent.fromString(bbox), LatLng).reproject(WebMercator)
@@ -228,7 +227,7 @@ trait Router extends Directives
                     }
 
                     val polys = reprojectPolygons(
-                      parsePolyMaskParam(polyMaskParam),
+                      parseZipCodesParam(zipCodesParam),
                       4326
                     )
 
