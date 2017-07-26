@@ -3,52 +3,44 @@
 var $ = require('jquery'),
     _ = require('lodash'),
     Bacon = require('baconjs'),
+    BU = require('./baconUtils.js'),
     otmTypeahead = require('./otmTypeahead.js'),
     template = require('./template.js');
 
 var dom = {
     chosenMasksList: '#chosen-masks',
     chosenBoundaryTemplate: '#boundary-mask-tmpl',
-    typeaheadInput: '#boundary-mask-typeahead',
+    boundaryInput: '#boundary-mask-typeahead',
     btnRemove: '.remove-mask'
 };
 
 var boundaries = {},
     chosenIds = [];
 
-function init() {
-    var typeahead = otmTypeahead.create({
-        name: "boundaryMasks",
-        url: "",  // TODO: fetch names of zip codes intersecting map bounds
-        input: dom.typeaheadInput,
-        template: "#boundary-element-template",
-        hidden: "#boundary-mask",
-        reverse: "id",
-        sortKeys: ['sortOrder', 'value']
-    });
-
-    typeahead.allDataStream.onValue(function (data) {
-        _.each(data, function (boundary) {
-            boundaries[boundary.id] = boundary;
-        });
-    });
-
-    var addBoundaryStream = typeahead.selectStream,
+function init(options) {
+    var addBoundaryStream = BU.searchBoxStream(dom.boundaryInput),
         removeBoundaryStream = $(dom.chosenMasksList).asEventStream('click', dom.btnRemove),
-        changedStream = Bacon.mergeAll(addBoundaryStream, removeBoundaryStream);
+        changedBus = new Bacon.Bus(),
+        zipCodeUrlPrefix = options.urls.zipCodeUrl;
 
-    addBoundaryStream.onValue(function (boundary) {
+    function zipCodeUrl(zipCode) {
+        return zipCodeUrlPrefix + '/' + zipCode;
+    }
+
+    addBoundaryStream.map(zipCodeUrl).flatMap(BU.getJsonFromUrl).onValue(function (boundary) {
         chosenIds.push(boundary.id);
         setChosenIds(chosenIds);
-        typeahead.clear();
+        $(dom.boundaryInput).val('').focus();
+        changedBus.push(boundary.id);
     });
 
     removeBoundaryStream.onValue(function (e) {
         var id = $(e.currentTarget).data('boundary-id');
-        setChosenIds(_.without(chosenIds, id));
+        setChosenIds(_.without(chosenIds, id.toString()));
+        changedBus.push(id);
     });
 
-    return changedStream;
+    return changedBus.toEventStream();
 }
 
 function setChosenIds(ids) {
@@ -57,7 +49,7 @@ function setChosenIds(ids) {
     $container.empty();
     _.each(ids, function (id) {
         var html = template.render(dom.chosenBoundaryTemplate, {
-            boundary: boundaries[id]
+            id: id
         });
         $container.append(html);
     });

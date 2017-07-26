@@ -150,13 +150,25 @@ trait Router extends Directives
       }
     } ~
     path("gt" / "masks" / "zip-codes" / Segment ) { (code) =>
+      options {
+        cors() {
+          complete("OK")
+        }
+      } ~
       get {
-        if (zipCodes.contains(code)) {
-          complete {
-            zipCodes(code)
+        cors () {
+          if (zipCodes.contains(code)) {
+            // Adding the zip to the GeoJSON geometry allows for simpler client code.
+            // This assumes that the Map value starts with "{".
+            val jsonString = "{\"id\":\"" + code + "\"," + zipCodes(code).tail
+            complete {
+              respondWithJson {
+                jsonString
+              }
+            }
+          } else {
+            complete(HttpResponse(NotFound, entity = "Unknown zip code."))
           }
-        } else {
-          complete(HttpResponse(NotFound, entity = "Unknown zip code."))
         }
       }
     } ~

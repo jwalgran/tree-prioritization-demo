@@ -68,7 +68,8 @@ function init(options) {
 
     // TODO: Re-enble when tile server accepts a list of zip code names
     // instead of "polyMask" GeoJSON
-    var locationMaskChangedStream = Bacon.never(), //locationMasks.init(),
+
+    var locationMaskChangedStream = locationMasks.init(options),
         boundsChangedStream = new Bacon.Bus(),
         parameterChangedStream = Bacon.mergeAll(
             initDropdownStream(dom.weightDropdowns),
@@ -270,7 +271,7 @@ function addParamsToUrl(url, params) {
                 layers: activeVariableSourceNames.join(','),
                 weights: activeVariableWeights.join(','),
                 layerMask: getRasterMaskValues(),
-                //boundaryIds: locationMasks.getChosenIds().join(',')
+                zipCodes: locationMasks.getChosenIds().join(',')
             },
             allParams = _.extend(commonParams, params);
         url += '?' + $.param(allParams);
@@ -392,7 +393,7 @@ function getParamsFromUi() {
         },
         masks: {
             variables: getCheckedRasterMaskNames(), // {nlcd: ['industrial', 'commercial']}
-            boundaryIds: locationMasks.getChosenIds()  // [1347, 1932]
+            boundaryIds: locationMasks.getChosenIds()  // ['19123', '19124']
         }
     };
     return params;
