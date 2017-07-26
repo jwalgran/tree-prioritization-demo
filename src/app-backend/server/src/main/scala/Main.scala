@@ -19,7 +19,7 @@ object AkkaSystem {
   }
 }
 
-object Main extends Router with ReaderSet {
+object Main extends Router with ReaderSet with Masks {
   import AkkaSystem._
   import TileServiceConfig._
 
@@ -39,6 +39,7 @@ object Main extends Router with ReaderSet {
     }
 
   def main(args: Array[String]): Unit = {
+    println(zipCodes("85029"))
     Http().bindAndHandle(routes, configHost, configPort)
   }
 }
