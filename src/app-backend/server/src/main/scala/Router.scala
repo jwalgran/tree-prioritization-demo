@@ -53,7 +53,8 @@ trait Router extends Directives
     with TileGetter
     with VectorHandling
     with LayerMasking
-    with TileLayerMasking { self: ReaderSet =>
+    with TileLayerMasking
+    with Masks { self: ReaderSet =>
 
   import AkkaSystem.materializer
 
@@ -146,6 +147,17 @@ trait Router extends Directives
               throw new RuntimeException("Health check: layers did not list from catalog'")
             }
           }
+        }
+      }
+    } ~
+    path("gt" / "masks" / "zip-codes" / Segment ) { (code) =>
+      get {
+        if (zipCodes.contains(code)) {
+          complete {
+            zipCodes(code)
+          }
+        } else {
+          complete(HttpResponse(NotFound, entity = "Unknown zip code."))
         }
       }
     } ~
